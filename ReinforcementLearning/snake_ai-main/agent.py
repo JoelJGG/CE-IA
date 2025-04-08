@@ -1,3 +1,8 @@
+"""
+Improvements
+Giving him info about his body
+Tweaking the Reward function
+"""
 from collections import deque
 import random
 from snake_game import Point, Direction, SnakeGame

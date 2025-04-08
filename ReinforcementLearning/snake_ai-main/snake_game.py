@@ -5,8 +5,8 @@ from enum import Enum
 from collections import namedtuple
 
 pygame.init()
-font = pygame.font.Font('arial.ttf', 25)
-#font = pygame.font.SysFont('arial', 25)
+#font = pygame.font.Font('/arial.ttf', 25)
+font = pygame.font.SysFont('arial', 25)
 
 class Direction(Enum):
     RIGHT = 1
@@ -24,7 +24,7 @@ BLUE2 = (0, 100, 255)
 BLACK = (0,0,0)
 
 BLOCK_SIZE = 20
-SPEED = 20
+SPEED = 200
 
 class SnakeGame:
     
@@ -118,7 +118,12 @@ class SnakeGame:
         text = font.render("Score: " + str(self.score), True, WHITE)
         self.display.blit(text, [0, 0])
         pygame.display.flip()
-        
+    def get_body(self):
+        body = []
+        for pt in self.snake:
+            body.append(pt)
+        return np.array(body, dtype=object)
+
     def _move(self, action):
         directions = [ Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP ]
         index = directions.index(self.direction)

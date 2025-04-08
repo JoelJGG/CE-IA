@@ -10,12 +10,12 @@ from conv_model import Conv, QTrainer
 import numpy as np
 import torch
 
-LR = 0.001
+LR = 0.0011
 
 class Agent:
     def __init__(self):
         self.game_counter = 0
-        self.gamma = 1 - LR
+        self.gamma = 0.9 - LR
         self.model = Conv(input_channels=6, grid_size=(24, 32), num_actions=3)
         self.trainer = QTrainer(self.model, LR, self.gamma)
         self.memory = deque(maxlen=100000)
@@ -25,18 +25,14 @@ class Agent:
         return game.get_conv_state()
     
     def action(self, state):
-        move = [0, 0, 0]
-        epsilon = 100 - self.game_counter
+        epsilon = max(20,100 - self.game_counter)
         if random.randint(0, 200) < epsilon:
             index = random.randint(0, 2)
         else:
             state_tensor = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-            print("State shape:", state.shape)
-            print("Tensor shape:", state_tensor.shape)
             pred = self.model(state_tensor)
             index = torch.argmax(pred).item()
-        move[index] = 1
-        return move
+        return index
     
     def train(self, state, action, reward, new_state, done):
         self.trainer.train_step(state, action, reward, new_state, done)
@@ -46,7 +42,7 @@ class Agent:
 
     def train_long(self):
         if len(self.memory) > 1000:
-            sample = random.sample(self.memory, 1000)
+            sample = random.sample(self.memory, 640)
         else:
             sample = self.memory
         states, actions, rewards, new_states, dones = zip(*sample)
@@ -54,18 +50,22 @@ class Agent:
 
     
 def play():
+    move = [0,0,0]
+    distance = 999
     total_score = 0
     max_score = 0
     agent = Agent()
     game = SnakeGame()
     while True:
         state = agent.state(game)
-        action = agent.action(state)
-        reward, done, score = game.play_step(action)
+        index = agent.action(state)
+        print("Chosen action:", index)
+        move[index] = 1
+        reward, done, score = game.play_step(move)
         new_state = agent.state(game)
 
-        agent.train(state, action, reward, new_state, done)
-        agent.save_step(state, action, reward, new_state, done)
+        agent.train(state, index, reward, new_state, done)
+        agent.save_step(state, index, reward, new_state, done)
 
         if done:
             game.reset()

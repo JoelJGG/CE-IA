@@ -1,3 +1,9 @@
+"""
+Mejorar la reward
+1- Si se acerca a la manzana libremente subir
+2- Si se acerca a su cuerpo sin sentido restar 0.1
+"""
+import math
 import pygame
 import random
 import numpy as np
@@ -24,7 +30,7 @@ GREEN2 = (0, 255, 100)
 BLACK = (0,0,0)
 
 BLOCK_SIZE = 20
-SPEED = 20
+SPEED = 200
 
 class SnakeGame:
     
@@ -51,6 +57,7 @@ class SnakeGame:
         self.score = 0
         self.steps = 0
         self.food = None
+        self.distance_to_food = 0
         self._place_food()
         
     def _place_food(self):
@@ -60,8 +67,14 @@ class SnakeGame:
         if self.food in self.snake:
             self._place_food()
         
+    def distance_to_food(self):
+        distance = self.head.distance(self.food)
+        print(distance)
+        return distance 
     def play_step(self, action):
+        reward = 0
         self.steps += 1
+        distance = self.distance_to_food
         # 1. collect user input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -71,15 +84,21 @@ class SnakeGame:
         # 2. move
         self._move(action) # update the head
         self.snake.insert(0, self.head)
-        
-        reward = 0
+        new_distance = self.distance_to_food
+        if new_distance < distance:
+            reward += 0.1
+        distance = new_distance
         # 3. check if game over
         game_over = False
-        if self.is_collision() or self.steps > len(self.snake) * 40:
+        if self.is_collision():
             reward = -1
             game_over = True
             return reward, game_over, self.score
             
+        if self.steps > len(self.snake) * 40:
+            reward = -2
+            game_over = True
+            return reward, game_over, self.score
         # 4. place new food or just move
         if self.head == self.food:
             reward = 1
@@ -103,6 +122,7 @@ class SnakeGame:
             return True
         # hits itself
         if point in self.snake[1:]:
+            print("Se choco con el mismo")
             return True
         
         return False
@@ -153,12 +173,14 @@ class SnakeGame:
         for pt in self.snake:
             x = int(pt.x // self.BLOCK_SIZE)
             y = int(pt.y // self.BLOCK_SIZE)
-            grid[0, y, x] = 1.0
+            if 0 <= x < cols and 0 <= y < rows:  # Verifica límites
+                grid[0, y, x] = 1.0
     
         # Food
         fx = int(self.food.x // self.BLOCK_SIZE)
         fy = int(self.food.y // self.BLOCK_SIZE)
-        grid[1, fy, fx] = 1.0
+        if 0 <= fx < cols and 0 <= fy < rows:  # Verifica límites
+            grid[1, fy, fx] = 1.0
     
         # Direction indicators
         head = self.head
@@ -197,15 +219,16 @@ class SnakeGame:
         hx = int(head.x // self.BLOCK_SIZE)
         hy = int(head.y // self.BLOCK_SIZE)
     
-        if not self.is_collision(left):
+        # Verifica colisiones y límites antes de actualizar el grid
+        if left and 0 <= left.x < self.w and 0 <= left.y < self.h :
             grid[2, hy, hx] = 1.0  # izquierda disponible
-        if not self.is_collision(forward):
+        if forward and 0 <= forward.x < self.w and 0 <= forward.y < self.h:
             grid[3, hy, hx] = 1.0  # adelante disponible
-        if not self.is_collision(right):
+        if right and 0 <= right.x < self.w and 0 <= right.y < self.h :
             grid[4, hy, hx] = 1.0  # derecha disponible
     
-        # Dirección actual (por si querés codificarla)
-        grid[5, hy, hx] = 1.0
+        # Dirección actual 
+        if 0 <= hx < cols and 0 <= hy < rows:  # Verifica límites
+            grid[5, hy, hx] = 1.0
     
         return grid
-            
